@@ -76,6 +76,6 @@ _main_(peptide_list,
 - [bioRxiv](https://www.biorxiv.org/content/10.1101/2022.01.12.476109v1)
 - Submitted to Journal of Proteome Research
 
-For other tools developed by the Gao lab, see our website [https://www.pepchem.org/](https://lab.gy/)
+For other tools developed by the Gao lab, see our website [https://lab.gy/](https://lab.gy/)
 
 Or follow our twitter at https://twitter.com/gao_lab to see more exciting informatics tools!
