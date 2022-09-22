@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans|Open+Sans:light|Open+Sans:bold">
+  <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
+  <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
+  <link rel="stylesheet" href="/styles.css">
+
+  <title>SCV</title>
+</head>
+<body>
+<div id="not_done" style="display: none;">
+  <p>Job not yet done.</p>
+  <p>Please refresh the page or come back at a later time.</p>
+</div>
+<div id="header" style="margin-left: 15px;" onclick="window.location = '/';">
+  <h1 style="text-align: left;">SCV</h1>
+  <p style="text-align: left;">Sequence Coverage Visualizer</p>
+</div>
+<div id="toolbox">
+  <div id="legend">
+
+  </div>
+  <div id="tools">
+    <span id="autorotate" class="material-icons active">cached</span>
+    <span id="capture" class="material-icons">photo_camera</span>
+  </div>
+</div>
+<div style="overflow: hidden; height: 100%; width: 100%; flex-wrap: wrap-reverse; gap: 0;" class="flex-row">
+  <div id="list-container">
+    <span id="list_loading" class="material-icons-outlined loading spin-ani">autorenew</span>
+
+    <div class="protein-list-container">
+    </div>
+  </div>
+
+    <div id="glmol01">
+      <span id="molloading" class="material-icons-outlined loading">autorenew</span>
+
+    </div>
+<textarea wrap="off" id="glmol01_src" style="display: none;">
+</textarea><br>
+<textarea wrap="off" id="glmol01_rep" style="display: none;">
+</textarea>
+  </div>
+</body>
+<script>
+  let job = (new URL(document.location)).searchParams.get('job');
+  let id_ptm_idx_dict;
+  let regex_dict;
+  let background_color;
+  let pdb_dest;
+  console.log(job);
+  window.onload = () => {
+    let form = new FormData();
+    form.append('job', job);
+    fetch('/protein-list', {
+      method: 'POST',
+      body: form
+    }).then(response => response.json())
+    .then(json => {
+      document.querySelector("#list_loading").classList.remove("spin-ani");
+      console.log(json);
+      id_ptm_idx_dict = JSON.parse(json['id_ptm_idx_dict']);
+      regex_dict = JSON.parse(json['regex_dict']);
+      show_legend(regex_dict);
+      background_color = json['background_color'];
+      pdb_dest = json['pdb_dest'];
+      let pq = JSON.parse(json['pq']);
+      if (pq.length == 0) {
+        document.querySelector('#not_done').style.display = "block";
+        document.querySelector('#not_done').innerHTML = "<p>No coverage.</p>";
+      }
+      else {
+        pq.forEach(i => {
+          if (id_ptm_idx_dict != undefined)
+            draw_coverage(i, id_ptm_idx_dict[i[1][0]]);
+          else
+            draw_coverage(i, undefined);
+        });
+      }
+    }).catch(error => {
+      document.querySelector("#list_loading").classList.remove("spin-ani");
+      console.log("not done");
+      console.log(error);
+      document.querySelector('#not_done').style.display = "block";
+    });
+  }
+
+  let inverval_id;
+
+  window.onresize = () => {
+    glmol01.rebuildScene(true);
+    glmol01.show();
+  }
+
+  const show_legend = (regex_dict) => {
+    let legend = document.querySelector("#legend");
+
+    let div = document.createElement('div');
+        div.classList.add("legend-item");
+    let p = document.createElement('p');
+        p.textContent = "Coverage";
+    let colorCircle = document.createElement('div');
+        colorCircle.classList.add('colorCircle');
+        colorCircle.style.backgroundColor = 'rgb(255,62,62)';
+    div.append(p, colorCircle)
+    legend.append(div);
+    for (const [key, value] of Object.entries(regex_dict)) {
+      let div = document.createElement('div');
+        div.classList.add("legend-item");
+      let ptm = document.createElement('p');
+          ptm.textContent = key.replaceAll('\\', '');
+      let rgb_arr = value.replace('[', '').replace(']', '').replace(' ', '').split(',').map((item) => {
+        return parseInt(item);
+      });
+      let colorCircle = document.createElement('div');
+          colorCircle.classList.add('colorCircle');
+          colorCircle.style.backgroundColor = 'rgb('+rgb_arr[0]+','+rgb_arr[1]+','+rgb_arr[2]+')';
+      div.append(ptm, colorCircle);
+      legend.append(div);
+    }
+  }
+
+  const start_autorotate = () => {
+    // let r = Math.acos(glmol01.dq.x)/Math.PI;
+    // let rs;
+    // if (r == 0)
+    //   rs = 0;
+    // else
+    //   rs = Math.sin(r * Math.PI) / r;
+    // gl_r = r;
+    // gl_dx = glmol01.dq.z/rs;
+    // gl_dy = glmol01.dq.w/rs;
+    autorotate = true;
+    if(inverval_id != undefined)
+      clearInterval(inverval_id);
+    inverval_id = setInterval(rotate_ani, 1000/60);
+    autorotate_button.classList.add("active");
+  }
+
+  const stop_autorotate = () => {
+    autorotate = false;
+    if(inverval_id != undefined)
+      clearInterval(inverval_id);
+    autorotate_button.classList.remove("active");
+  }
+
+  const toggle_autorotate = () => {
+    if(autorotate)
+      stop_autorotate();
+    else
+      start_autorotate();
+  }
+
+  const fetch_mol = (input, tup) => {
+    console.log(input);
+    let form = new FormData();
+    form.append('job', job);
+    form.append('percent', input[0]);
+    form.append('protein_id', tup[0]);
+    form.append('freqArr', input[2]);
+    form.append('background_color', background_color);
+    form.append('pdb_dest', pdb_dest);
+    if(id_ptm_idx_dict[tup[0]] != undefined)
+      form.append('id_ptm_idx_dict', JSON.stringify(id_ptm_idx_dict[tup[0]]));
+    else
+      form.append('id_ptm_idx_dict', '{}');
+    form.append('regex_dict', JSON.stringify(regex_dict));
+    return fetch('/3d-view', {
+      method: 'POST',
+      body: form
+    }).then(response => response.json())
+      .then(json => {
+        return json;
+      });
+
+  }
+
+  const draw_mol = (pdbstr, ret) => {
+    let container = glmol01.container[0].querySelector("canvas");
+    document.querySelector('#glmol01_src').textContent = pdbstr;
+    document.querySelector('#glmol01_rep').textContent = ret;
+    glmol01.loadMolecule(true);
+    glmol01.rebuildScene(true);
+    container.style.opacity = "1";
+    container.style.transition = "opacity 0.75s";
+    glmol01.show();
+    container.addEventListener("mousedown", e => stop_autorotate()); //stop autorotate when mouse is pressed
+    container.addEventListener("touchstart", e => stop_autorotate()); //stop autorotate when touched on mobile
+    start_autorotate();
+  }
+
+  const clear_selected = () => {
+    document.querySelectorAll(".protein-card").forEach(i => {i.classList.remove('selected');})
+  }
+
+  const prom_handle = (prom) => {
+    prom.then(response => {
+      console.log(response);
+      document.querySelector('#molloading').classList.remove('spin-ani');
+      draw_mol(response.pdbstr, response.ret);
+    });
+  }
+
+  const draw_coverage = (input, ptm) => {
+    let tup = input[1].splice(',');
+    console.log(tup);
+    let lst = input[2];
+    // console.log(ptm);
+    let card = document.createElement('div');
+      card.classList.add('protein-card');
+
+    let textDiv = document.createElement('div');
+
+    let p = document.createElement('p');
+        if(tup[1].length == 0)
+          p.textContent = tup[0];
+        else
+          p.textContent = tup[1][0] + "|" + tup[0];
+    let description = document.createElement('p');
+        description.textContent = tup[1][1];
+        description.classList.add('description');
+        textDiv.append(p, description);
+    let canvas = document.createElement('canvas');
+    card.append(textDiv, canvas);
+
+    canvas.width = 1000;
+    canvas.height = 50;
+
+    // let canvas = document.querySelector('#testCanvas');
+    let ctx = canvas.getContext('2d');
+    let width = canvas.width;
+    let height = canvas.height;
+
+    ctx.fillStyle = '#dcdcdc';
+    ctx.fillRect(0, 0, width, height);
+    if(input[3])
+      ctx.fillStyle = 'rgb(255,62,62)';
+    else
+      ctx.fillStyle = '#ababab';
+
+    let non_zero_counter = 0;
+    lst.forEach((i, index) => {
+      if(i !== 0)
+        non_zero_counter++;
+      else {
+        if(non_zero_counter/lst.length*100 !== 0) {
+          // console.log('index: ' + index / lst.length * 100 + ' percentage: ' + non_zero_counter / lst.length * 100);
+          let rect_width = Math.floor(non_zero_counter / lst.length * width);
+          let position = Math.floor(index / lst.length * width) - rect_width;
+          // console.log('position: ' + position + ' width: ' + rect_width);
+          non_zero_counter = 0;
+          ctx.fillRect(position, 0, rect_width, height);
+        }
+      }
+    });
+
+        if(non_zero_counter/lst.length*100 !== 0) {
+          // console.log('index: ' + index / lst.length * 100 + ' percentage: ' + non_zero_counter / lst.length * 100);
+          let rect_width = Math.floor(non_zero_counter / lst.length * width);
+          let position = Math.floor(lst.length / lst.length * width) - rect_width;
+          // console.log('position: ' + position + ' width: ' + rect_width);
+          non_zero_counter = 0;
+          ctx.fillRect(position, 0, rect_width, height);
+        }
+    if (ptm != undefined) {
+      for (const [key, value] of Object.entries(ptm)) {
+        let regex_val = regex_dict[key];
+        if (regex_val != undefined) {
+          let rgb_arr = regex_val.replace('[', '').replace(']', '').replace(' ', '').split(',').map((item) => {
+            return parseInt(item);
+          });
+          console.log(rgb_arr);
+          ctx.fillStyle = 'rgb(' + rgb_arr[0] + ',' + rgb_arr[1] + ',' + rgb_arr[2] + ')';
+
+          value.forEach(index => {
+            let position = index / lst.length * width;
+            ctx.fillRect(position, 0, 2, height);
+
+          });
+
+        }
+        // ctx.fillStyle = 'rgb('+value[]
+      }
+    }
+
+    if(input[3]) {
+      card.addEventListener('click', e => {
+        clear_selected();
+        card.classList.add("selected");
+        document.querySelector('#molloading').classList.add('spin-ani');
+        let container = glmol01.container[0].querySelector("canvas");
+        container.style.opacity = "0";
+        let prom = fetch_mol(input, tup); //fetch mol immediately on click, give promise to prom_handle
+        container.addEventListener("transitionend", e => prom_handle(prom), {once: true});
+      });
+    }
+    else {
+      card.classList.add('disabled');
+    }
+    document.querySelector('.protein-list-container').append(card);
+  }
+
+  const rotate = (r, dx ,dy) => {
+    // console.log("r: " + r + " dx: " + dx + " dy: " + dy);
+    let rs = Math.sin(r * Math.PI) / r;
+    glmol01.dq.x = Math.cos(r * Math.PI);
+    glmol01.dq.y = 0;
+    glmol01.dq.z =  rs * dx;
+    glmol01.dq.w =  rs * dy;
+    glmol01.rotationGroup.quaternion = new THREE.Quaternion(1, 0, 0, 0);
+    glmol01.rotationGroup.quaternion.multiplySelf(glmol01.dq);
+    glmol01.rotationGroup.quaternion.multiplySelf(glmol01.cq);
+    glmol01.show();
+  }
+
+  let gl_r = 0.02;
+  let gl_dx = 0.002;
+  let gl_dy = 0.002;
+
+  const rotate_ani = () => {
+    rotate(gl_r, gl_dx, gl_dy);
+    gl_r += 0.0002;
+    gl_dx += 0.0002;
+    // gl_dy += 0.001;
+  }
+
+  let autorotate_button = document.querySelector("#autorotate");
+  let autorotate = true;
+
+  autorotate_button.addEventListener("click", e => {toggle_autorotate();})
+
+  let capture_button = document.querySelector("#capture");
+
+  const capture_canvas = () => {
+    let canvas = glmol01.container[0].querySelector("canvas");
+    // let image = canvas.toDataURL("image/png", 1.0).replace(/^data:image\/png/,'data:application/octet-stream');
+    let image = canvas.toDataURL();
+    // window.open().document.write('<img src="' + canvas.toDataURL() + '" />');
+    let link = document.createElement('a');
+    link.download = "capture.png";
+    link.href = image;
+    link.click();
+  }
+  capture_button.addEventListener("click", e => {
+    capture_canvas();
+  });
+
+
+
+
+</script>
+<script src="js/jquery-1.7.min.js"></script>
+<script src="js/Three45.js"></script>
+<!--<script src="ProteinSurface4.js"></script>-->
+<script type="text/javascript" src="js/GLmol37.js"></script>
+<script>
+  var glmol01 = new GLmol('glmol01', true);
+  $('#glmol01_reload').click(function(ev) {
+    glmol01.rebuildScene(true);
+    glmol01.show();
+  });
+  function defineRep() {
+    var idHeader = "#" + this.id + '_';
+
+    this.parseRep(this.modelGroup, $('#glmol01_rep').val());
+  }
+
+  function expandSeq(str) {
+    var nums = str.split(',');
+    var ret = []
+    for (var i = 0, lim = nums.length; i < lim; i++) {
+      var tmp = nums[i].split('-');
+      if (tmp.length == 1) tmp.push(tmp[0]);
+      tmp[0] = parseInt(tmp[0]); tmp[1] = parseInt(tmp[1]);
+      for (var j = tmp[0]; j <= tmp[1]; j++) ret.push(j);
+    }
+    return ret;
+  }
+
+  glmol01.parseSS = function(str, ss) {
+    var nums = str.split(',');
+    var ret = []
+    var atoms = this.atoms;
+    for (var i = 0, lim = nums.length; i < lim; i++) {
+      var tmp = nums[i].split('-');
+      if (tmp.length == 1) tmp[1] = tmp[0];
+
+      var start = parseInt(tmp[0]), end = parseInt(tmp[1]);
+      for (var j = start; j <= end; j++) {
+        if (atoms[j]) atoms[j].ss = ss;
+      }
+      if (atoms[start]) atoms[start].ssbegin = true;
+      if (atoms[end]) atoms[end].ssend = true;
+    }
+  };
+
+  function parseRep(parentgroup, str) { // TODO: implement!
+    var lines = str.split("\n");
+    var group = new THREE.Object3D();
+    var rgroup = new THREE.Object3D();
+    rgroup.add(group);
+    parentgroup.add(rgroup);
+
+    // 1st pass; parse colors and dists
+    for (var i = 0, lim = lines.length; i < lim; i++) {
+      vals = lines[i].split(':');
+      type = vals[0];
+      if (type == 'color') {
+        rgb = vals[1].split(',');
+        if (rgb.length != 3) continue;
+        var c = 0;
+        c += Math.floor((parseFloat(rgb[0]) * 255)) << 16 ;
+        c += Math.floor((parseFloat(rgb[1]) * 255)) << 8;
+        c += Math.floor(parseFloat(rgb[2]) * 255);
+        var atoms = expandSeq(vals[2]);
+        this.colorAtoms(atoms, c);
+      } else if (type == 'dists') {
+        var c = vals[1].split(',');
+        var color = new THREE.Color();
+        color.r = parseFloat(c[0]);
+        color.g = parseFloat(c[1]);
+        color.b = parseFloat(c[2]);
+        var points = vals[2].split(',');
+        var out = [];
+        for (var j = 0, jlim = Math.floor(points.length / 3); j < jlim; j++) {
+          out.push(new THREE.Vector3(parseFloat(points[3 * j]), parseFloat(points[3 * j + 1]), parseFloat(points[3 * j + 2])));
+        }
+        this.drawDottedLines(group, out, color);
+      } else if (type == 'helix') {
+        glmol01.parseSS(vals[1], 'h');
+      } else if (type == 'sheet') {
+        glmol01.parseSS(vals[1], 's');
+      } else if (type == 'view') {
+        view = vals[1].split(',');
+        if (view.length < 17) continue;
+        for (var j = 0; j < 17; j++) view[j] = parseFloat(view[j]);
+        rgroup.matrixAutoUpdate = false;
+        rgroup.matrix.n11 = view[8];
+        rgroup.matrix.n21 = view[9];
+        rgroup.matrix.n31 = view[10];
+        rgroup.matrix.n12 = view[11];
+        rgroup.matrix.n22 = view[12];
+        rgroup.matrix.n32 = view[13];
+        rgroup.matrix.n13 = view[14];
+        rgroup.matrix.n23 = view[15];
+        rgroup.matrix.n33 = view[16];
+        group.position.x = view[0]; group.position.y = view[1]; group.position.z = view[2];
+        this.rotationGroup.position.z = view[3];
+        this.slabNear = view[4]; this.slabFar = view[5];
+        this.fogStart = view[6]; this.fov = view[7];
+      } else if (type == 'bgcolor') {
+        this.setBackground(vals[1]);
+      }
+    }
+    // 2nd pass; parse representations
+    for (var i = 0, lim = lines.length; i < lim; i++) {
+      vals = lines[i].split(':');
+      type = vals[0];
+      if (vals.length < 2) continue;
+      var atoms = expandSeq(vals[1]);
+      if (atoms.length == 0) continue;
+      if (type == 'sphere') {
+        this.drawAtomsAsSphere(group, atoms);
+      } else if (type == 'stick') {
+        this.drawBondsAsStick(group, atoms, this.cylinderRadius, this.cylinderRadius, true);
+      } else if (type == 'surface') {
+//         this.generateMesh(group, atoms, 4);
+      } else if (type == 'ribbon') {
+        this.drawCartoon(group, atoms, this.curveWidth);
+        this.drawCartoonNucleicAcid(group, atoms);
+      } else if (type == 'trace') {
+        this.drawMainchainCurve(group, atoms, this.curveWidth, 'CA', 1);
+        this.drawMainchainCurve(group, atoms, this.curveWidth, 'O3\'', 1);
+      } else if (type == 'line') {
+        this.drawBondsAsLine(group, atoms, this.lineWidth * 2);
+      } else if (type == 'cross') {
+        this.drawAsCross(group, atoms, 0.3);
+      } else if (type == 'smallSphere') {
+        this.drawAtomsAsSphere(group, atoms, 0.3, true);
+      } else if (type == 'sphere') {
+        this.drawAtomsAsSphere(group, atoms, this.sphereRadius, false);
+      }
+    }
+  }
+
+  glmol01.rebuildScene = function(repressDraw) {
+    time = new Date();
+
+    this.initializeScene();
+    this.defineRepresentation();
+
+    console.log("builded scene in " + (+new Date() - time) + "ms");
+
+    // if (repressDraw) return;
+    this.show();
+  };
+
+  glmol01.parseRep = parseRep;
+  glmol01.defineRepresentation = defineRep;
+  // glmol01.loadMolecule(true);
+  // $('#loading').hide();
+</script>
+</html>

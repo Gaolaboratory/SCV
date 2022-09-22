@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans|Open+Sans:light|Open+Sans:bold">
+    <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
+    <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
+    <link rel="stylesheet" href="/styles.css">
+
+    <title>SCV</title>
+</head>
+<body>
+<div id="header" onclick="window.location = '/';">
+    <h1>SCV</h1>
+    <p>Sequence Coverage Visualizer</p>
+</div>
+<div id="main">
+    <div id="content">
+    <div class="flex-row">
+        <div id="left">
+            <h3 style="margin: 0;">PSM/peptide list</h3>
+            <p style="margin: 5px 0;">Input PSMs with or without PTMs (newline seperated)</p>
+            <p id="example_button" onclick="set_demo()">Example</p>
+            <div id="psm_list">
+                <label class="mdc-text-field mdc-text-field--filled mdc-text-field--textarea mdc-text-field--no-label">
+                    <span class="mdc-text-field__ripple"></span>
+                    <span class="mdc-text-field__resizer">
+                    <textarea id="psm_textarea" class="mdc-text-field__input" spellcheck="false" rows="8" cols="40" aria-label="Label" oninput="psm_ptm(this.value);"></textarea>
+                    </span>
+                    <span class="mdc-line-ripple"></span>
+                </label>
+            </div>
+
+        </div>
+        <div id="right">
+            <h3 style="margin: 0;">PTMs</h3>
+            <p style="margin: 5px 0;">Detected PTMs will show here</p>
+            <p style="margin: 5px 0;">Mark checkbox to enable highlighting.</p>
+            <div id="ptm-grid">
+
+            </div>
+        </div>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <div class="mdc-select mdc-select--filled demo-width-class" style="flex: 1; margin: 10px auto;">
+            <div class="mdc-select__anchor"
+                 role="button"
+                 aria-haspopup="listbox"
+                 aria-expanded="false"
+                 aria-labelledby="demo-label demo-selected-text">
+                <span class="mdc-select__ripple"></span>
+                <span id="demo-label" class="mdc-floating-label">Species</span>
+                <span class="mdc-select__selected-text-container">
+          <span id="demo-selected-text" class="mdc-select__selected-text"></span>
+        </span>
+                <span class="mdc-select__dropdown-icon">
+          <svg
+                  class="mdc-select__dropdown-icon-graphic"
+                  viewBox="7 10 10 5" focusable="false">
+            <polygon
+                    class="mdc-select__dropdown-icon-inactive"
+                    stroke="none"
+                    fill-rule="evenodd"
+                    points="7 10 12 15 17 10">
+            </polygon>
+            <polygon
+                    class="mdc-select__dropdown-icon-active"
+                    stroke="none"
+                    fill-rule="evenodd"
+                    points="7 15 12 10 17 15">
+            </polygon>
+          </svg>
+        </span>
+                <span class="mdc-line-ripple"></span>
+            </div>
+
+            <div class="mdc-select__menu mdc-menu mdc-menu-surface mdc-menu-surface--fullwidth" >
+                <ul class="mdc-deprecated-list" role="listbox" aria-label="Food picker listbox">
+    <!--                <li class="mdc-deprecated-list-item mdc-deprecated-list-item&#45;&#45;selected" aria-selected="true" data-value="" role="option">-->
+    <!--                    <span class="mdc-deprecated-list-item__ripple"></span>-->
+    <!--                </li>-->
+                    <li class="mdc-deprecated-list-item mdc-deprecated-list-item--selected" aria-selected="true" data-value="mouse" role="option">
+                        <span class="mdc-deprecated-list-item__ripple"></span>
+                        <span class="mdc-deprecated-list-item__text">
+                        Mouse
+                        </span>
+                    </li>
+		    <li class="mdc-deprecated-list-item mdc-deprecated-list-item--selected" aria-selected="true" data-value="rat" role="option">
+			<span class="mdc-deprecated-list-item__ripple"></span>
+			<span class="mdc-deprecated-list-item__text">
+			Rat
+			</span>
+		    </li> 
+                    <li class="mdc-deprecated-list-item mdc-deprecated-list-item--selected" aria-selected="true" data-value="human" role="option">
+                        <span class="mdc-deprecated-list-item__ripple"></span>
+                        <span class="mdc-deprecated-list-item__text">
+                        Human
+                        </span>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+        <div style="display: flex; flex-direction: column; text-align: center; flex: 1;">
+            <p>Upload pdb files: (Optional)</p>
+            <input  style="margin: auto;" type="file" multiple id="user_upload" name="user_upload">
+        </div>
+        <div style="display:flex; flex: 1;">
+            <p style="text-align: center; margin: auto;">Background color:</p>
+            <input type="color" id="background_color" value="#FFFFFF">
+        </div>
+    </div>
+    <hr>
+
+    <div id="nextDiv" class="flex-row">
+        <p>Next</p>
+        <span style="margin: auto 0;" class="material-icons-outlined">chevron_right</span>
+    </div>
+    </div>
+    <div id="submitted">
+        <div style="text-align: center; margin: auto">
+            <h3>Job submitted.</h3>
+            <div id="urlArea">
+                <a id="urlField"></a>
+                <span id="copy_button" class="material-icons-outlined">content_copy</span>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+
+<script>
+    const set_demo = () => {
+	   document.querySelector('#psm_textarea').value = "EQNEASPTPR\n" +
+            "YCQEQDMCCR\n" +
+            "ELAPGLHLR\n" +
+            "GVVSDNCYPFSGR\n" +
+            "C[143]TCHEGGHWECDQEPCLVDPDMIK\n" +
+            "GRADECALPYLGATCYCDLFCN[115]R\n" +
+            "GTNECDIETFVLGVWGR\n" +
+            "EQNEASPTPR\n" +
+            "GNYGWQAGN[115]HSAFWGMTLDEGIR\n" +
+		    "CPNGQVDSNDIYQVTPAYR\n" +
+		    "DLSWQVRSLLLDHNR\n" + 
+		    "CNCALRPLCTWLR\n" +
+		    "RPGSRNRPGYGTGYF\n" +
+		    "RPDGDAASQPRTPILLLR\n" +
+		    "QSLRQELYVQDYASIDWPAQR\n" +
+		    "GTNGSQIWDTSFAIQALLEAGAHHR\n" +
+		    "ETLNQGLDFCRRKQR\n" +
+		    "SYFTDLPKAQTAHEGALN[115]GVTFYAK\n" +
+		    "CDGEANVFSDLHSLRQFTSR\n" +
+		    "ETFHGLKELAFSYLVWDSK\n" +
+		    "IKNIYVSDVLNMK";
+        psm_ptm(document.querySelector('#psm_textarea').value);
+        let color_choosers = document.querySelectorAll('.colorChooser');
+        color_choosers[0].value = '#ff00f7';
+        color_choosers[1].value = '#00ff08';
+        document.querySelectorAll('.mdc-checkbox').forEach(i => {i.querySelector('input').checked = true});
+   	selected_ptms.add("N[115]");
+        selected_ptms.add("C[143]");
+    }
+
+    
+    document.querySelector('#nextDiv').addEventListener("click", e => {send_request();});
+
+    let checkbox_template = document.createElement('div');
+    checkbox_template.classList.add('mdc-touch-target-wrapper');
+    checkbox_template.innerHTML = '<div class="mdc-touch-target-wrapper">\n' +
+        '  <div class="mdc-checkbox mdc-checkbox--touch">\n' +
+        '    <input oninput="checkbox_handler(this);"type="checkbox"\n' +
+        '           class="mdc-checkbox__native-control"\n' +
+        '           id="checkbox-1"/>\n' +
+        '    <div class="mdc-checkbox__background">\n' +
+        '      <svg class="mdc-checkbox__checkmark"\n' +
+        '           viewBox="0 0 24 24">\n' +
+        '        <path class="mdc-checkbox__checkmark-path"\n' +
+        '              fill="none"\n' +
+        '              d="M1.73,12.91 8.1,19.28 22.79,4.59"/>\n' +
+        '      </svg>\n' +
+        '      <div class="mdc-checkbox__mixedmark"></div>\n' +
+        '    </div>\n' +
+        '    <div class="mdc-checkbox__ripple"></div>\n' +
+        '  </div>\n' +
+        '</div>';
+
+    let checkboxes = [];
+
+    let ptm_map = new Set();
+    let selected_ptms = new Set();
+
+    const psm_ptm = (input) => {
+        ptm_map = new Set();
+        selected_ptms = new Set();
+        let ptmGrid = document.querySelector('#ptm-grid');
+        while(ptmGrid.firstChild){
+            ptmGrid.firstChild.remove();
+        }
+        let newline_list = input.split(/\r?\n/);
+        let arrStr = encodeURIComponent(JSON.stringify(newline_list));
+        let regx = /(\w{1}\[\d+\.?\d+\])/gm;
+        newline_list.forEach(pep => {
+            let matches = pep.match(regx);
+            if (matches != null) {
+                matches.forEach(match => {
+                    ptm_map.add(match);
+                });
+            }
+        });
+        console.log(ptm_map);
+        ptm_map.forEach(ptm => {
+            let div = document.createElement('div');
+            div.classList.add('ptm-card');
+            let p = document.createElement('p');
+            p.textContent = ptm;
+            let checkbox = checkbox_template.cloneNode(true);
+            checkbox.dataset.ptm = ptm;
+            let colorChooser = document.createElement('input');
+                colorChooser.classList.add('colorChooser');
+                colorChooser.type = 'color';
+                colorChooser.value = '#ff0000';
+                colorChooser.dataset.ptm = ptm;
+            div.append(checkbox, p, colorChooser);
+            ptmGrid.append(div);
+        });
+    }
+
+    const checkbox_handler = (checkbox) => {
+        if(checkbox.checked)
+            selected_ptms.add(checkbox.parentNode.parentNode.parentNode.dataset.ptm);
+        else
+            selected_ptms.delete(checkbox.parentNode.parentNode.parentNode.dataset.ptm);
+    }
+
+    const send_request = () => {
+        let newline_list = document.querySelector('#psm_textarea').value.split(/\r?\n/);
+        let ptms = {};
+        let colorChoosers = document.querySelectorAll('.colorChooser');
+        selected_ptms.forEach(ptm => {
+            colorChoosers.forEach(chooser => {
+                if (chooser.dataset.ptm == ptm) {
+                    // ptms.push(JSON.stringify({[ptm]:chooser.value}));
+                    ptms[ptm] = get_rgb_arr(chooser.value);
+                }
+            });
+        });
+        let form = new FormData();
+        form.append('job_number', uuidv4());
+        form.append('psms', newline_list);
+        form.append('ptms', JSON.stringify(ptms));
+        form.append('background_color', get_glmol_color(document.querySelector('#background_color').value));
+        Array.from(document.querySelector("#user_upload").files).forEach(file => {
+            form.append('user_upload', file);
+        });
+        form.append('species', species_menu.value);
+        fetch('/job', {
+            method: 'POST',
+            body: form
+        })
+            .then(response => response.text())
+            .then(text => {
+                console.log("received:" + text);
+                transition_to_submitted(text);
+            });
+    }
+
+    const psm_textfield = new mdc.textField.MDCTextField(document.querySelector('.mdc-text-field'));
+    const species_menu = new mdc.select.MDCSelect(document.querySelector('.mdc-select'));
+
+    const copy_to_clipboard = () => {
+        let text = document.querySelector("#urlArea").querySelector('a').textContent;
+        navigator.clipboard.writeText(text);
+    }
+
+    const transition_to_submitted = (job_number) => {
+        let main = document.querySelector("#main");
+        main.scrollTop = 0;
+        main.style.overflowY = "hidden";
+        let content = document.querySelector("#content");
+        content.style.opacity = "0";
+        content.addEventListener("transitionend", e=> {
+            let submitted = document.querySelector("#submitted");
+            submitted.style.opacity = "1";
+            submitted.style.zIndex = "1";
+            let urlField = document.querySelector("#urlField");
+            urlField.textContent = window.location.href + "view?job="+job_number;
+            urlField.href = window.location.href + "view?job="+job_number;
+
+        });
+    }
+    document.querySelector("#copy_button").addEventListener("click", e => {
+        copy_to_clipboard();
+    });
+
+    const gen_hex = (r, g, b) => {
+        return ~~(r * 255) << 16 ^ ~~(g * 255) << 8 ^ ~~(b * 255);
+    }
+
+    const get_glmol_color = (hex) => {
+        const r = parseInt(hex.substr(1,2), 16)
+        const g = parseInt(hex.substr(3,2), 16)
+        const b = parseInt(hex.substr(5,2), 16)
+        return gen_hex(r/255, g/255, b/255);
+    }
+
+    const get_rgb_arr = (hex) => {
+	const r = parseInt(hex.substr(1,2), 16)
+        const g = parseInt(hex.substr(3,2), 16)
+        const b = parseInt(hex.substr(5,2), 16)
+        return [r, g, b];
+    }
+
+    const uuidv4 = () => {
+        return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+        );
+    }
+</script>
+</html>
