@@ -70,7 +70,7 @@ _main_(peptide_list,
 ```
 ### Result from html:
 ![example](/images/example.png =250x250)
-
+<img src="/images/example.png" width="48">
 ### How to cite:
 - [bioRxiv](https://www.biorxiv.org/content/10.1101/2022.01.12.476109v1)
 - Submitted to Journal of Proteome Research
