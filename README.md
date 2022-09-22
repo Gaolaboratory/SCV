@@ -1,6 +1,6 @@
 ![logo](/images/scv_logo.png)
 
-## Sequence coverage visualizer (SCV, local version)
+## Sequence coverage visualizer (SCV)
 Generate an interactive 3D protein coverage map (PTM enabled) given peptides list and protein sequence
 
 Developed and maintained by Xinhao shao and Chris Grams at Gao lab, UIC. For any bugs or issues, please contact xshao8@uic.edu
@@ -70,7 +70,6 @@ _main_(peptide_list,
 ```
 ### Result from html:
 ![example](/images/example.png)
-<img src="/images/example.png" alt="example"  style="height:50%; width:50%">
 
 ### How to cite:
 - [bioRxiv](https://www.biorxiv.org/content/10.1101/2022.01.12.476109v1)
