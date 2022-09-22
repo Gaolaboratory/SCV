@@ -69,7 +69,7 @@ _main_(peptide_list,
            base_path=html_output)
 ```
 ### Result from html:
-![example](/images/example.png)
+![example](/images/example.png =250x250)
 
 ### How to cite:
 - [bioRxiv](https://www.biorxiv.org/content/10.1101/2022.01.12.476109v1)
