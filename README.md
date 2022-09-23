@@ -20,6 +20,7 @@ Example using uploaded .pdb file other than default Alphafold from [RCSB](https:
 4. Click 'Next' and visualize the sequence coverage on your own PDB structure
 <img src="/images/3hff_pdb_example.png" width="300">
  
+note: if you encounter issues visualizing your own pdb file, please contact us. Some pdb files need further clean-up before using directly in SCV.
 
 #### Command line:
 Rest API:
