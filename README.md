@@ -12,12 +12,12 @@ Developed and maintained by Xinhao shao and Chris Grams at Gao lab, UIC. For any
 
 tutorial: [https://youtu.be/NVoVMHVczKY](https://youtu.be/NVoVMHVczKY)
 
-Example using uploaded .pdb file other than default Alphafold from [RCSB](https://www.rcsb.org/):
+Example using uploaded .pdb file from [RCSB](https://www.rcsb.org/) other than default Alphafold pdb structures:
 
-1. Download a monomeric structure [3hff](https://www.rcsb.org/structure/3HFF)
-2. Upload 3hff.pdb in the [scv.lab.gy](http://scv.lab.gy/)
+1. Download a monomeric structure from RCSB database[3hff](https://www.rcsb.org/structure/3HFF)
+2. Upload downloaded 3hff.pdb in the [scv.lab.gy](http://scv.lab.gy/)
 3. Copy and paste PSMs of your interest (e.g. ATKAVAVLKGDGPVQG)
-4. Click 'Next' and visualize the sequence coverage on your own PDB structure
+4. Click 'Next' and visualize the sequence coverage on your own PDB structure with SCV
 <img src="/images/3hff_pdb_example.png" width="300">
  
 note: if you encounter issues visualizing your own pdb file, please contact us. Some pdb files need further clean-up before using directly in SCV.
