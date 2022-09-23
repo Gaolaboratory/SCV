@@ -12,6 +12,15 @@ Developed and maintained by Xinhao shao and Chris Grams at Gao lab, UIC. For any
 
 tutorial: [https://youtu.be/NVoVMHVczKY](https://youtu.be/NVoVMHVczKY)
 
+Example using uploaded .pdb file other than default Alphafold from [RCSB](https://www.rcsb.org/):
+
+1. Download a monomeric structure [3hff](https://www.rcsb.org/structure/3HFF)
+2. Upload pdb file in the [scv.lab.gy](http://scv.lab.gy/)
+3. Copy and paste PSMs of your interest (e.g. ATKAVAVLKGDGPVQG)
+4. Click 'Next' and visualize the sequence coverage on your own PDB structure
+<img src="/images/3hff_pdb_example.png" width="300">
+ 
+
 #### Command line:
 Rest API:
 ```shell script
