@@ -83,8 +83,8 @@ _main_(peptide_list,
 <img src="/images/example.png" width="250">
 
 ### How to cite:
-- [bioRxiv](https://www.biorxiv.org/content/10.1101/2022.01.12.476109v1)
-- Submitted to Journal of Proteome Research
+- [Journal of Proteome Research](https://doi.org/10.1021/acs.jproteome.2c00358)
+- Shao X, Grams C, Gao Y. Sequence Coverage Visualizer: A Web Application for Protein Sequence Coverage 3D Visualization. J Proteome Res. 2023 Feb 3;22(2):343-349. doi: 10.1021/acs.jproteome.2c00358. Epub 2022 Dec 13. PMID: 36511722; PMCID: PMC10232130.
 
 For other tools developed by the Gao lab, see our website [https://lab.gy/](https://lab.gy/)
 
